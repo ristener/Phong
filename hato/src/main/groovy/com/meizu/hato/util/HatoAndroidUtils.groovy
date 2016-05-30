@@ -1,5 +1,6 @@
 package com.meizu.hato.util
 
+import org.apache.commons.io.FileUtils
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.DefaultTask
 import org.gradle.api.InvalidUserDataException
@@ -10,7 +11,7 @@ import org.gradle.api.Project
  */
 class HatoAndroidUtils {
 
-    private static final String PATCH_NAME = "patch.jar"
+    private static final String PATCH_NAME = ".patch.jar"
 
     public static String getApplication(File manifestFile) {
         def manifest = new XmlParser().parse(manifestFile)
@@ -23,7 +24,7 @@ class HatoAndroidUtils {
         return null;
     }
 
-    public static dex(Project project, File classDir) {
+    public static dex(Project project, File classDir, String patchMark) {
         if (classDir.listFiles().size()) {
             def sdkDir
   
@@ -38,12 +39,21 @@ class HatoAndroidUtils {
             if (sdkDir) {
                 def cmdExt = Os.isFamily(Os.FAMILY_WINDOWS) ? '.bat' : ''
                 def stdout = new ByteArrayOutputStream()
+                def patchFile = new File(classDir.getParentFile(), patchMark + PATCH_NAME)
                 project.exec {
                     commandLine "${sdkDir}/build-tools/${project.android.buildToolsVersion}/dx${cmdExt}",
                             '--dex',
-                            "--output=${new File(classDir.getParent(), PATCH_NAME).absolutePath}",
+                            "--output=${patchFile.absolutePath}",
                             "${classDir.absolutePath}"
                     standardOutput = stdout
+
+                }
+                if (patchFile){
+                    def patchDir = new File(project.buildDir.parentFile, "extras/patches");
+                    if (!patchDir.exists()){
+                        patchDir.mkdir();
+                    }
+                    FileUtils.copyFile(patchFile, new File(patchDir, patchFile.getName()));
                 }
                 def error = stdout.toString().trim()
                 if (error) {

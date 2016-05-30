@@ -9,6 +9,17 @@ import org.gradle.api.Project
  */
 class HatoFileUtils {
 
+    public static void copy2Extras(Project project, String version, String dirName, File file){
+        def patchDir = new File(project.buildDir.getParentFile(), "/extras/${version}/${dirName}")
+        if (!patchDir.exists()){
+            patchDir.mkdir()
+        }
+        if (file.exists()) {
+            def newFile = new File(patchDir.getAbsolutePath() + "/" + file.getName())
+            FileUtils.copyFile(file, newFile)
+        }
+    }
+
     public static File touchFile(File dir, String path) {
         def file = new File("${dir}/${path}")
         file.getParentFile().mkdirs()
@@ -33,6 +44,32 @@ class HatoFileUtils {
                 throw new InvalidUserDataException("${project.getProperties()[property]} is not directory")
             }
         }
+        return file
+    }
+
+    public static File getVersionDir(Project project, String version) {
+
+        def file = new File(project.buildDir.getParentFile(), "extras/${version}");
+
+            if (!file.exists()) {
+                //throw new InvalidUserDataException("extras/${version} dir does not exist")
+                return null;
+            }
+            if (!file.isDirectory()) {
+                throw new InvalidUserDataException("extras/${version} dir is not directory")
+            }
+        return file
+    }
+
+    public static File getFileFromExt(String path) {
+        def file
+            file = new File(path)
+            if (!file.exists()) {
+                throw new InvalidUserDataException("${path} does not exist")
+            }
+            if (!file.isDirectory()) {
+                throw new InvalidUserDataException("${path} is not directory")
+            }
         return file
     }
 

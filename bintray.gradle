@@ -54,14 +54,20 @@ def pomConfig = {
             email DEVELOPER_EMAIL
         }
     }
+
+
     //这里有引号，并且有个空格，否则生成不了依赖，主要是这里的dependencies并不是build.gradle里的dependencies，而gradle会把他当成自身的dependencies处理
-    "dependencies " {
+   "dependencies " {
         dependency{
-            groupId "com.alibaba"
-            artifactId "fastjson"
-            "version " "1.2.6"
-            //同dependencies
+            groupId "commons-io"
+            artifactId "commons-io"
+            "version " "1.4"
         }
+       dependency{
+           groupId "commons-codec"
+           artifactId "commons-codec"
+           "version " "1.6"
+       }
     }
 
 }

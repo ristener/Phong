@@ -16,7 +16,7 @@ repositories {
 }
 
 group='com.meizu.media'
-version='1.0.1'
+version='1.0.3'
 
 uploadArchives {
     repositories {
