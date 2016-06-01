@@ -27,7 +27,7 @@ class HatoAndroidUtils {
     public static dex(Project project, File classDir, String patchMark) {
         if (classDir.listFiles().size()) {
             def sdkDir
-  
+
             Properties properties = new Properties()
             File localProps = project.rootProject.file("local.properties")
             if (localProps.exists()) {

@@ -5,17 +5,17 @@ import com.meizu.hato.util.HatoFileUtils
 import com.meizu.hato.util.HatoMapUtils
 import com.meizu.hato.util.HatoProcessor
 import com.meizu.hato.util.HatoSetUtils
+import com.meizu.hato.util.HatoStringUtils
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
 class HatoPlugin implements Plugin<Project> {
+    def askPatch
+    String targetVersion
     HashSet<String> includePackage
     HashSet<String> excludeClass
-    String fromVersion
-    String toVersion
-    def askPatch
     def patchList = []
     def beforeDexTasks = []
     private static final String HATO_DIR = "HatoDir"
@@ -32,15 +32,19 @@ class HatoPlugin implements Plugin<Project> {
         project.extensions.create("hatoCoifig", HatoExtension, project)
         project.afterEvaluate {
             //拿到脚本传过来的过滤包信息
+            String curVersion = project.android.defaultConfig.versionCode
             def extension = project.extensions.findByName("hatoCoifig") as HatoExtension
+            askPatch = extension.askPatch
+            targetVersion = extension.targetVersion
             includePackage = extension.includePackage
             excludeClass = extension.excludeClass
-            toVersion = extension.toVersion
-            fromVersion = extension.fromVersion
-            askPatch = extension.askPatch
+
+            if (HatoStringUtils.isNull(targetVersion) && !HatoStringUtils.isNull(curVersion)){
+                targetVersion = curVersion;
+            }
+
             if (askPatch) {
                 project.android.applicationVariants.each { variant ->
-
                     //非debug版本,或者是调试模式
                     if (!variant.name.contains(DEBUG) || !variant.name.contains(DEBUG.capitalize())) {
                         Map hashMap
@@ -53,13 +57,17 @@ class HatoPlugin implements Plugin<Project> {
                         def proguardTask = project.tasks.findByName("proguard${name}")
 
                         //def oldHatoDir = HatoFileUtils.getFileFromProperty(project, HATO_DIR)
-                        def oldHatoDir = HatoFileUtils.getVersionDir(project, fromVersion)
+                        def oldHatoDir = HatoFileUtils.getVersionDir(project, targetVersion)
 
                         if (oldHatoDir) {
                             def mappingFile = HatoFileUtils.getVariantFile(oldHatoDir, variant, MAPPING_TXT)
-                            HatoAndroidUtils.applymapping(proguardTask, mappingFile)
+                            if (mappingFile){
+                                HatoAndroidUtils.applymapping(proguardTask, mappingFile)
+                            }
                             def hashFile = HatoFileUtils.getVariantFile(oldHatoDir, variant, HASH_TXT)
-                            hashMap = HatoMapUtils.parseMap(hashFile)
+                            if (hashFile){
+                                hashMap = HatoMapUtils.parseMap(hashFile)
+                            }
                         }
 
                         def dirName = variant.dirName
@@ -85,7 +93,7 @@ class HatoPlugin implements Plugin<Project> {
                         def hatoPatch = "hato${variant.name.capitalize()}Patch"
                         project.task(hatoPatch) << {
                             if (patchDir) {
-                                def markStr = "${fromVersion}_${toVersion}_${name}"
+                                def markStr = "${targetVersion}_${name}"
                                 HatoAndroidUtils.dex(project, patchDir, markStr)
                             }
                         }
@@ -95,11 +103,15 @@ class HatoPlugin implements Plugin<Project> {
                             if (proguardTask) {
                                 def mapFile = new File("${project.buildDir}/outputs/mapping/${variant.dirName}/mapping.txt")
                                 def newMapFile = new File("${hatoDir}/${variant.dirName}/mapping.txt");
-                                FileUtils.copyFile(mapFile, newMapFile)
+                                if (mapFile){
+                                    FileUtils.copyFile(mapFile, newMapFile)
+                                    HatoFileUtils.copy2Extras(project, curVersion, variant.dirName, mapFile)
+                                }
+                            }
 
-                                def hashText = new File("${project.buildDir}/outputs/hato/${variant.dirName}/hash.txt")
-                                HatoFileUtils.copy2Extras(project, toVersion, variant.dirName, mapFile)
-                                HatoFileUtils.copy2Extras(project, toVersion, variant.dirName, hashText)
+                            def hashText = new File("${project.buildDir}/outputs/hato/${variant.dirName}/hash.txt")
+                            if (hashText){
+                                HatoFileUtils.copy2Extras(project, curVersion, variant.dirName, hashText)
                             }
                         }
 
@@ -174,13 +186,13 @@ class HatoPlugin implements Plugin<Project> {
                         }
 
                         def assembleTask = project.tasks.findByName("assemble${name}")
-                        def cleanTask = project.tasks.findByName("clean")
+                        //  def cleanTask = project.tasks.findByName("clean")
 
                         if (assembleTask) {
                             assembleTask.dependsOn hatoPatchTask
                             if (oldHatoDir){
-                                assembleTask.dependsOn cleanTask
-                                cleanTask.mustRunAfter hatoPatchTask
+                                // assembleTask.dependsOn cleanTask
+                                //  cleanTask.mustRunAfter hatoPatchTask
                             }
                         }
 
@@ -191,7 +203,7 @@ class HatoPlugin implements Plugin<Project> {
                 //generate all patch.jar task
                 project.task(HUATO_PATCHES) << {
                     patchList.each { patchDir ->
-                        HatoAndroidUtils.dex(project, patchDir, fromVersion + "_" + toVersion)
+                        HatoAndroidUtils.dex(project, patchDir, targetVersion)
                     }
                 }
                 beforeDexTasks.each {
