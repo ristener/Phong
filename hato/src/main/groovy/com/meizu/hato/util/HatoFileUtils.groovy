@@ -1,5 +1,6 @@
 package com.meizu.hato.util
 
+
 import org.apache.commons.io.FileUtils
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project
@@ -9,8 +10,10 @@ import org.gradle.api.Project
  */
 class HatoFileUtils {
 
-    public static void copy2Extras(Project project, String version, String dirName, File file){
-        def patchDir = new File(project.buildDir.getParentFile(), "/extras/${version}/${dirName}")
+    public static final String SERVER_HATO_DIR = /*System.getProperty("user.home") + */"/media/mzf/DailyBuild4Test/hato"
+
+    public static void copy2TargetDir(Project project, String targetApp, String targetVersion, String dirName, File file){
+        def patchDir = new File(SERVER_HATO_DIR +  "/${targetApp}/${targetVersion}/${dirName}")
         if (!patchDir.exists()){
             patchDir.mkdir()
         }
@@ -19,6 +22,7 @@ class HatoFileUtils {
             FileUtils.copyFile(file, newFile)
         }
     }
+
 
     public static File touchFile(File dir, String path) {
         def file = new File("${dir}/${path}")
@@ -47,31 +51,20 @@ class HatoFileUtils {
         return file
     }
 
-    public static File getVersionDir(Project project, String version) {
+    public static File getVersionDir(String appName, String version) {
+        def dir = SERVER_HATO_DIR + "/${appName}/${version}"
+        def file = new File(dir);
 
-        def file = new File(project.buildDir.getParentFile(), "extras/${version}");
-
-            if (!file.exists()) {
-                //throw new InvalidUserDataException("extras/${version} dir does not exist")
-                return null;
-            }
-            if (!file.isDirectory()) {
-                throw new InvalidUserDataException("extras/${version} dir is not directory")
-            }
+        if (!file.exists()) {
+            //throw new InvalidUserDataException("extras/${version} dir does not exist")
+            return null;
+        }
+        if (!file.isDirectory()) {
+            throw new InvalidUserDataException("${dir} dir is not directory")
+        }
         return file
     }
 
-    public static File getFileFromExt(String path) {
-        def file
-            file = new File(path)
-            if (!file.exists()) {
-                throw new InvalidUserDataException("${path} does not exist")
-            }
-            if (!file.isDirectory()) {
-                throw new InvalidUserDataException("${path} is not directory")
-            }
-        return file
-    }
 
     public static File getVariantFile(File dir, def variant, String fileName) {
         return new File("${dir}/${variant.dirName}/${fileName}")

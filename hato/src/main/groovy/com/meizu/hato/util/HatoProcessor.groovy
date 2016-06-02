@@ -62,25 +62,8 @@ class HatoProcessor {
     private static byte[] referHackWhenInit(InputStream inputStream) {
         ClassReader cr = new ClassReader(inputStream);
         ClassWriter cw = new ClassWriter(cr, 0);
-        ClassVisitor cv = new ClassVisitor(Opcodes.ASM4, cw) {
-            @Override
-            public MethodVisitor visitMethod(int access, String name, String desc,
-                                             String signature, String[] exceptions) {
 
-                MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-                mv = new MethodVisitor(Opcodes.ASM4, mv) {
-                    @Override
-                    void visitInsn(int opcode) {
-                        if ("<init>".equals(name) && opcode == Opcodes.RETURN) {
-                            super.visitLdcInsn(Type.getType("Lcn/jiajixin/nuwa/Hack;"));
-                        }
-                        super.visitInsn(opcode);
-                    }
-                }
-                return mv;
-            }
-
-        };
+        ClassVisitor cv = new InjectCassVisitor(Opcodes.ASM4, cw);
         cr.accept(cv, 0);
         return cw.toByteArray();
     }
@@ -91,6 +74,12 @@ class HatoProcessor {
 
     private
     static boolean shouldProcessClassInJar(String entryName, HashSet<String> includePackage, HashSet<String> excludeClass) {
+        if (!entryName.endsWith(".class")) {
+            return false;
+        }
+        if (entryName.contains("/R\$") || entryName.endsWith("/R.class") || entryName.endsWith("/BuildConfig.class") || entryName.startsWith("cn/jiajixin/nuwa/") || entryName.contains("android/support/"))
+            return false;
+        return HatoSetUtils.isIncluded(entryName, includePackage) && !HatoSetUtils.isExcluded(entryName, excludeClass)
         return entryName.endsWith(".class") && !entryName.startsWith("com/meizu/media/hato") && HatoSetUtils.isIncluded(entryName, includePackage) && !HatoSetUtils.isExcluded(entryName, excludeClass) && !entryName.contains("android/support/")
     }
 
@@ -110,4 +99,44 @@ class HatoProcessor {
         optClass.renameTo(file)
         return bytes
     }
+
+    static class InjectCassVisitor extends ClassVisitor {
+        InjectCassVisitor(int i, ClassVisitor classVisitor) {
+            super(i, classVisitor)
+        }
+
+        @Override
+        public MethodVisitor visitMethod(int access, String name, String desc,
+                                         String signature, String[] exceptions) {
+
+            MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+            mv = new MethodVisitor(Opcodes.ASM4, mv) {
+                @Override
+                void visitInsn(int opcode) {
+                    if ("<init>".equals(name) && opcode == Opcodes.RETURN) {
+                        Label l1 = new Label();
+                        super.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Boolean", "FALSE", "Ljava/lang/Boolean;");
+                        super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+                        super.visitJumpInsn(Opcodes.IFEQ, l1);
+                        super.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+                        super.visitLdcInsn(Type.getType("Lcn/jiajixin/nuwa/Hack;"));
+                        super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V", false);
+                        super.visitLabel(l1);
+                    }
+                    super.visitInsn(opcode);
+                }
+
+                @Override
+                public void visitMaxs(int maxStack, int maxLocal) {
+                    if ("<init>".equals(name)) {
+                        super.visitMaxs(maxStack + 2, maxLocal);
+                    } else {
+                        super.visitMaxs(maxStack, maxLocal);
+                    }
+                }
+            }
+            return mv;
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.meizu.hato.util
 
+
 import org.apache.commons.io.FileUtils
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.DefaultTask
@@ -24,7 +25,7 @@ class HatoAndroidUtils {
         return null;
     }
 
-    public static dex(Project project, File classDir, String patchMark) {
+    public static dex(Project project, File classDir, String targetApp, String targetVersion, String variantName) {
         if (classDir.listFiles().size()) {
             def sdkDir
 
@@ -39,7 +40,7 @@ class HatoAndroidUtils {
             if (sdkDir) {
                 def cmdExt = Os.isFamily(Os.FAMILY_WINDOWS) ? '.bat' : ''
                 def stdout = new ByteArrayOutputStream()
-                def patchFile = new File(classDir.getParentFile(), patchMark + PATCH_NAME)
+                def patchFile = new File(classDir.getParentFile(), "${targetVersion}_${variantName}" + PATCH_NAME)
                 project.exec {
                     commandLine "${sdkDir}/build-tools/${project.android.buildToolsVersion}/dx${cmdExt}",
                             '--dex',
@@ -49,7 +50,8 @@ class HatoAndroidUtils {
 
                 }
                 if (patchFile){
-                    def patchDir = new File(project.buildDir.parentFile, "extras/patches");
+                    def patchDir = new File(HatoFileUtils.SERVER_HATO_DIR + "/${targetApp}")
+
                     if (!patchDir.exists()){
                         patchDir.mkdir();
                     }
