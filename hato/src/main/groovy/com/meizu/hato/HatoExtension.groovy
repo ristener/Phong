@@ -3,12 +3,11 @@ package com.meizu.hato
 import org.gradle.api.Project
 
 class HatoExtension {
-    def targetVersion
-    def targetApp
-    def askPatch
+    def debug
+    def enable
+    def patch = [] //patch的配置信息
     def includePackage = []
     def excludeClass = []
 
-    HatoExtension(Project project) {
-    }
+    HatoExtension(Project project) {}
 }

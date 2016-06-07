@@ -11,21 +11,8 @@ import org.gradle.api.Project
  * Created by jixin.jia on 15/11/10.
  */
 class HatoAndroidUtils {
-
-    private static final String PATCH_NAME = ".patch.jar"
-
-    public static String getApplication(File manifestFile) {
-        def manifest = new XmlParser().parse(manifestFile)
-        def androidTag = new groovy.xml.Namespace("http://schemas.android.com/apk/res/android", 'android')
-        def applicationName = manifest.application[0].attribute(androidTag.name)
-
-        if (applicationName != null) {
-            return applicationName.replace(".", "/") + ".class"
-        }
-        return null;
-    }
-
-    public static dex(Project project, File classDir, String targetApp, String targetVersion, String variantName) {
+    private static final String PATCH_NAME = "patch.jar"
+    public static dex(Project project, File classDir, String targetApp, String targetVersion, String mark) {
         if (classDir.listFiles().size()) {
             def sdkDir
 
@@ -40,7 +27,7 @@ class HatoAndroidUtils {
             if (sdkDir) {
                 def cmdExt = Os.isFamily(Os.FAMILY_WINDOWS) ? '.bat' : ''
                 def stdout = new ByteArrayOutputStream()
-                def patchFile = new File(classDir.getParentFile(), "${targetVersion}_${variantName}" + PATCH_NAME)
+                def patchFile = new File(classDir.getParentFile(), mark + "." + PATCH_NAME)
                 project.exec {
                     commandLine "${sdkDir}/build-tools/${project.android.buildToolsVersion}/dx${cmdExt}",
                             '--dex',
@@ -50,12 +37,11 @@ class HatoAndroidUtils {
 
                 }
                 if (patchFile){
-                    def patchDir = new File(HatoFileUtils.SERVER_HATO_DIR + "/${targetApp}")
-
-                    if (!patchDir.exists()){
-                        patchDir.mkdir();
+                    def newPatchDir = new File(HatoFileUtils.HATO_DIR_PATH + "/${targetApp}/${targetVersion}")
+                    if (!newPatchDir.exists()){
+                        newPatchDir.mkdir();
                     }
-                    FileUtils.copyFile(patchFile, new File(patchDir, patchFile.getName()));
+                    FileUtils.copyFile(patchFile, new File(newPatchDir, patchFile.getName()));
                 }
                 def error = stdout.toString().trim()
                 if (error) {

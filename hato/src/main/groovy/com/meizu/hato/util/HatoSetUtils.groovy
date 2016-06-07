@@ -7,7 +7,7 @@ class HatoSetUtils {
     public static boolean isExcluded(String path, Set<String> excludeClass) {
         def isExcluded = false;
         excludeClass.each { exclude ->
-            if (path.endsWith(exclude)) {
+            if (path.contains(exclude)) {
                 isExcluded = true
             }
         }
@@ -18,9 +18,9 @@ class HatoSetUtils {
         if (includePackage.size() == 0) {
             return true
         }
-
         def isIncluded = false;
         includePackage.each { include ->
+            include = include.replace('.', '/')
             if (path.contains(include)) {
                 isIncluded = true
             }

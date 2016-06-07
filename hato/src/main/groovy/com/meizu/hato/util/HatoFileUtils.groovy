@@ -1,8 +1,7 @@
 package com.meizu.hato.util
 
-
+import com.meizu.hato.HatoDir
 import org.apache.commons.io.FileUtils
-import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project
 
 /**
@@ -10,19 +9,20 @@ import org.gradle.api.Project
  */
 class HatoFileUtils {
 
-    public static final String SERVER_HATO_DIR = /*System.getProperty("user.home") + */"/media/mzf/DailyBuild4Test/hato"
+    public static String HATO_DIR_PATH = HatoDir.RELEASE_PATH
 
-    public static void copy2TargetDir(Project project, String targetApp, String targetVersion, String dirName, File file){
-        def patchDir = new File(SERVER_HATO_DIR +  "/${targetApp}/${targetVersion}/${dirName}")
+    public static void copy2SpecialDir(Project project, String targetPath, File file){
+        def patchDir = new File("${HATO_DIR_PATH}/${targetPath}")
         if (!patchDir.exists()){
             patchDir.mkdir()
         }
         if (file.exists()) {
             def newFile = new File(patchDir.getAbsolutePath() + "/" + file.getName())
-            FileUtils.copyFile(file, newFile)
+            if (!newFile.exists()){
+                FileUtils.copyFile(file, newFile)
+            }
         }
     }
-
 
     public static File touchFile(File dir, String path) {
         def file = new File("${dir}/${path}")
@@ -37,30 +37,13 @@ class HatoFileUtils {
         FileUtils.writeByteArrayToFile(file, bytes)
     }
 
-    public static File getFileFromProperty(Project project, String property) {
-        def file
-        if (project.hasProperty(property)) {
-            file = new File(project.getProperties()[property])
-            if (!file.exists()) {
-                throw new InvalidUserDataException("${project.getProperties()[property]} does not exist")
-            }
-            if (!file.isDirectory()) {
-                throw new InvalidUserDataException("${project.getProperties()[property]} is not directory")
-            }
-        }
-        return file
-    }
-
     public static File getVersionDir(String appName, String version) {
-        def dir = SERVER_HATO_DIR + "/${appName}/${version}"
-        def file = new File(dir);
-
+        def file = new File(HATO_DIR_PATH + "/${appName}/${version}");
         if (!file.exists()) {
-            //throw new InvalidUserDataException("extras/${version} dir does not exist")
             return null;
         }
         if (!file.isDirectory()) {
-            throw new InvalidUserDataException("${dir} dir is not directory")
+            return null;
         }
         return file
     }

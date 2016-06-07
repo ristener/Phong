@@ -17,8 +17,6 @@ class HatoProcessor {
     static processJar(File hashFile, File jarFile, File patchDir, Map map, HashSet<String> includePackage, HashSet<String> excludeClass) {
         if (jarFile) {
             def optJar = new File(jarFile.getParent(), jarFile.name + ".opt")
-
-
             def file = new JarFile(jarFile);
             Enumeration enumeration = file.entries();
             JarOutputStream jarOutputStream = new JarOutputStream(new FileOutputStream(optJar));
@@ -62,7 +60,6 @@ class HatoProcessor {
     private static byte[] referHackWhenInit(InputStream inputStream) {
         ClassReader cr = new ClassReader(inputStream);
         ClassWriter cw = new ClassWriter(cr, 0);
-
         ClassVisitor cv = new InjectCassVisitor(Opcodes.ASM4, cw);
         cr.accept(cv, 0);
         return cw.toByteArray();
@@ -77,10 +74,10 @@ class HatoProcessor {
         if (!entryName.endsWith(".class")) {
             return false;
         }
-        if (entryName.contains("/R\$") || entryName.endsWith("/R.class") || entryName.endsWith("/BuildConfig.class") || entryName.startsWith("cn/jiajixin/nuwa/") || entryName.contains("android/support/"))
+        if (entryName.contains("/R\$") || entryName.endsWith("/R.class") || entryName.endsWith("/BuildConfig.class") || entryName.startsWith("com/meizu/hato/") || entryName.contains("android/support/")){
             return false;
+        }
         return HatoSetUtils.isIncluded(entryName, includePackage) && !HatoSetUtils.isExcluded(entryName, excludeClass)
-        return entryName.endsWith(".class") && !entryName.startsWith("com/meizu/media/hato") && HatoSetUtils.isIncluded(entryName, includePackage) && !HatoSetUtils.isExcluded(entryName, excludeClass) && !entryName.contains("android/support/")
     }
 
     public static byte[] processClass(File file) {
@@ -98,6 +95,22 @@ class HatoProcessor {
         }
         optClass.renameTo(file)
         return bytes
+    }
+
+    public static void processClass(File inputFile, File hashFile, Map hashMap, File patchDir, String dirName, HashSet<String> includePackage, HashSet<String> excludeClass) {
+        def path = inputFile.absolutePath
+        if (shouldProcessClassInJar(path, includePackage, excludeClass)){
+            def bytes = HatoProcessor.processClass(inputFile)
+            path = path.split("${dirName}/")[1]
+            def hash = DigestUtils.shaHex(bytes)
+            hashFile.append(HatoMapUtils.format(path, hash))
+
+            if (HatoMapUtils.notSame(hashMap, path, hash)) {
+                //copy insame class to patch dir
+                HatoFileUtils.copyBytesToFile(inputFile.bytes, HatoFileUtils.touchFile(patchDir, path))
+            }
+
+        }
     }
 
     static class InjectCassVisitor extends ClassVisitor {
