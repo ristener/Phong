@@ -14,7 +14,8 @@ class HatoFileUtils {
     public static void copy2SpecialDir(Project project, String targetPath, File file){
         def patchDir = new File("${HATO_DIR_PATH}/${targetPath}")
         if (!patchDir.exists()){
-            patchDir.mkdir()
+            patchDir.mkdir();
+
         }
         if (file.exists()) {
             def newFile = new File(patchDir.getAbsolutePath() + "/" + file.getName())

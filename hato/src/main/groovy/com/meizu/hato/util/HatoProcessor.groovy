@@ -1,5 +1,6 @@
 package com.meizu.hato.util
 
+import com.meizu.hato.HatoPlugin
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.IOUtils
 import org.objectweb.asm.*
@@ -13,8 +14,7 @@ import java.util.zip.ZipEntry
  * Created by jixin.jia on 15/11/10.
  */
 class HatoProcessor {
-    public
-    static processJar(File hashFile, File jarFile, File patchDir, Map map, HashSet<String> includePackage, HashSet<String> excludeClass) {
+    public static processJar(File hashFile, File jarFile, File patchDir, Map map, HashSet<String> includePackage) {
         if (jarFile) {
             def optJar = new File(jarFile.getParent(), jarFile.name + ".opt")
             def file = new JarFile(jarFile);
@@ -29,7 +29,8 @@ class HatoProcessor {
                 InputStream inputStream = file.getInputStream(jarEntry);
                 jarOutputStream.putNextEntry(zipEntry);
 
-                if (shouldProcessClassInJar(entryName, includePackage, excludeClass)) {
+                if (shouldProcessClassInJar(entryName, includePackage)) {
+                    HatoPlugin.dumpln("shouldProcessClassInJar:" + entryName)
                     def bytes = referHackWhenInit(inputStream);
                     jarOutputStream.write(bytes);
 
@@ -70,14 +71,14 @@ class HatoProcessor {
     }
 
     private
-    static boolean shouldProcessClassInJar(String entryName, HashSet<String> includePackage, HashSet<String> excludeClass) {
+    static boolean shouldProcessClassInJar(String entryName, HashSet<String> includePackage) {
         if (!entryName.endsWith(".class")) {
             return false;
         }
         if (entryName.contains("/R\$") || entryName.endsWith("/R.class") || entryName.endsWith("/BuildConfig.class") || entryName.startsWith("com/meizu/hato/") || entryName.contains("android/support/")){
             return false;
         }
-        return HatoSetUtils.isIncluded(entryName, includePackage) && !HatoSetUtils.isExcluded(entryName, excludeClass)
+        return HatoSetUtils.isIncluded(entryName, includePackage)
     }
 
     public static byte[] processClass(File file) {
@@ -97,9 +98,9 @@ class HatoProcessor {
         return bytes
     }
 
-    public static void processClass(File inputFile, File hashFile, Map hashMap, File patchDir, String dirName, HashSet<String> includePackage, HashSet<String> excludeClass) {
+    public static void processClass(File inputFile, File hashFile, Map hashMap, File patchDir, String dirName, HashSet<String> includePackage) {
         def path = inputFile.absolutePath
-        if (shouldProcessClassInJar(path, includePackage, excludeClass)){
+        if (shouldProcessClassInJar(path, includePackage)){
             def bytes = HatoProcessor.processClass(inputFile)
             path = path.split("${dirName}/")[1]
             def hash = DigestUtils.shaHex(bytes)
